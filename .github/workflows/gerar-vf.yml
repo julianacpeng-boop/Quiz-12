@@ -1,0 +1,41 @@
+name: Gerar Juh Quiz — Verdadeiro ou Falso
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-vf.txt
+
+      - name: Instalar FFmpeg e fontes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+
+      - name: Instalar dependências do formato
+        run: python -m pip install -r requirements-vf.txt
+
+      - name: Gerar vídeos e legendas
+        run: python gerar_vf.py
+
+      - name: Disponibilizar MP4 e TXT
+        uses: actions/upload-artifact@v4
+        with:
+          name: juh-quiz-verdadeiro-ou-falso
+          path: saida_vf/
+          if-no-files-found: error
+          retention-days: 30
