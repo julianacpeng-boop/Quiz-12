@@ -5,11 +5,13 @@ Gera um vídeo vertical para cada afirmação cadastrada: a narração lê a per
 ## O padrão do vídeo
 
 - Vídeo vertical: **1080 × 1920 px** (9:16).
+- Layout escolhido: **Game show** — fundo roxo, detalhes amarelos, botões verde e coral abaixo da imagem e resposta em uma tela própria.
 - Narração: voz `pt-BR-AntonioNeural`, velocidade `+10%`. A conexão usa o endpoint Edge Services validado no Quiz-10, tenta novamente em caso de falha temporária e recorre à voz local em português se o serviço continuar indisponível.
+- Botões de resposta sólidos, com ícones e rótulos centralizados; perguntas longas reduzem a fonte automaticamente antes da geração, evitando a falha por texto que não cabe.
 - Contagem antes da resposta: 3 segundos, com os números 3, 2 e 1 e bipes curtos.
 - Cada TXT para publicação começa com CAPA_SEGUNDOS=2 e inclui uma legenda curta e até 4 hashtags relacionadas ao tema.
-- As seis caricaturas incluídas são quadradas, em **970 × 970 px**, e aparecem na área entre as posições `(55, 500)` e `(1025, 1470)` do vídeo. Imagens opcionais também cabem nessa área sem cortes ou distorções.
-- A resposta e a explicação aparecem nessa área depois da contagem.
+- As seis caricaturas incluídas são quadradas, em **970 × 970 px**. Cada uma aparece centralizada em **870 × 870 px**, com uma margem de 50 px dentro do quadro fixo de 970 × 970 px.
+- A resposta usa outro quadro do mesmo tamanho; a explicação aparece em um cartão separado abaixo da imagem.
 - Cada item de `PERGUNTAS` gera um vídeo com apenas uma afirmação.
 - O MP4 e o TXT são enviados para `saida/Juh-Quiz-12/verdadeiro-ou-falso/execucao-ID/` no Drive.
 
@@ -47,7 +49,7 @@ Edite `dados_vf.py`. Para cada vídeo, preencha `pergunta`, `verdadeiro`, `expli
 }
 ```
 
-Use `True` para verdadeiro e `False` para falso. As seis caricaturas incluídas estão no tamanho exato de **970 × 970 px**. Para adicionar outra, prefira esse tamanho; imagens de outras proporções também serão ajustadas para caber na área sem serem cortadas.
+Use `True` para verdadeiro e `False` para falso. As seis caricaturas incluídas estão no tamanho exato de **970 × 970 px**. Para adicionar outra, prefira esse tamanho; o gerador mantém o quadro de 970 px e ajusta a imagem para aparecer menor, sem cortes ou distorções.
 
 ## Gerar pelo GitHub
 

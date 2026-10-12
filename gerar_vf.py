@@ -28,13 +28,19 @@ VOICE = "pt-BR-AntonioNeural"
 RATE = "+10%"
 VIDEO_W, VIDEO_H = 1080, 1920
 IMAGE_BOX = (55, 500, 1025, 1470)  # left, top, right, bottom: 970 x 970 px
+ANSWER_IMAGE_BOX = (55, 235, 1025, 1205)  # same 970 x 970 px on the answer screen
+IMAGE_INSET = 50  # caricature appears 870 x 870 px inside the fixed 970 x 970 px frame
 FPS = 30
 DRIVE_BASE = "DESTINO:saida/Juh-Quiz-12/verdadeiro-ou-falso"
-PINK = "#ec4c91"
-PAPER = "#fffaf4"
-INK = "#332333"
-MUTED = "#786b77"
-YELLOW = "#ffe568"
+BG_TOP = (37, 22, 63)
+BG_BOTTOM = (74, 31, 93)
+BRAND = "#ffd84d"
+TITLE = "#fff8e8"
+MUTED = "#e2d2f3"
+CARD = "#35204f"
+LINE = "#a77bd5"
+TRUE = "#35b873"
+FALSE = "#ff6272"
 
 
 def run(command: list[str]) -> None:
@@ -105,38 +111,88 @@ def rounded(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], radius: i
     draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
 
 
+def draw_answer_buttons(draw: ImageDraw.ImageDraw) -> None:
+    """Solid game-show buttons, with matched sizes and high contrast."""
+    font = load_font(27, True)
+    buttons = (
+        ((55, 1495, 520, 1592), "VERDADEIRO", TRUE, "check"),
+        ((560, 1495, 1025, 1592), "FALSO", FALSE, "cross"),
+    )
+    for box, label, accent, icon in buttons:
+        x1, y1, x2, y2 = box
+        rounded(draw, (x1, y1 + 8, x2, y2 + 8), 25, "#160d25")
+        rounded(draw, box, 25, accent)
+        center = (x1 + 55, (y1 + y2) // 2)
+        draw.ellipse((center[0] - 21, center[1] - 21, center[0] + 21, center[1] + 21), fill="#fff8e8")
+        icon_color = accent
+        if icon == "check":
+            draw.line((center[0] - 10, center[1], center[0] - 2, center[1] + 8,
+                       center[0] + 12, center[1] - 10), fill=icon_color, width=5, joint="curve")
+        else:
+            draw.line((center[0] - 9, center[1] - 9, center[0] + 9, center[1] + 9),
+                      fill=icon_color, width=5)
+            draw.line((center[0] + 9, center[1] - 9, center[0] - 9, center[1] + 9),
+                      fill=icon_color, width=5)
+        bounds = draw.textbbox((0, 0), label, font=font)
+        text_x = (x1 + x2 - (bounds[2] - bounds[0])) / 2 - bounds[0] + 15
+        text_y = (y1 + y2 - (bounds[3] - bounds[1])) / 2 - bounds[1]
+        draw.text((text_x, text_y), label, font=font, fill="#281740")
+
+
+def fit_question_font(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    width: int = 970,
+) -> tuple[ImageFont.ImageFont, int]:
+    """Shrink long prompts just enough to keep them clear above the image."""
+    max_height = 142
+    for size in (48, 44, 40, 36, 32, 28, 24):
+        font = load_font(size, True)
+        lines = wrap_lines(draw, text, font, width)
+        height = len(lines) * size + max(0, len(lines) - 1) * 6
+        if len(lines) <= 3 and height <= max_height:
+            return font, 6
+    raise ValueError("A pergunta continua longa demais para caber acima da imagem, mesmo reduzindo a fonte.")
+
+
 def make_paper(seed_text: str) -> Image.Image:
-    """Fundo papel creme com granulação discreta, no estilo Quiz 10."""
-    image = Image.new("RGB", (VIDEO_W, VIDEO_H), PAPER)
-    draw = ImageDraw.Draw(image)
-    seed = sum(ord(char) for char in seed_text)
-    for i in range(190):
-        x = (seed * 37 + i * 137) % VIDEO_W
-        y = (seed * 71 + i * 211) % VIDEO_H
-        color = "#f5eee8" if i % 2 else "#fffdf9"
-        draw.ellipse((x, y, x + 2, y + 2), fill=color)
-    return image
+    """Deep purple game-show background with a subtle vertical gradient."""
+    strip = Image.new("RGB", (1, VIDEO_H))
+    pixels = []
+    for y in range(VIDEO_H):
+        t = y / max(1, VIDEO_H - 1)
+        pixels.append(tuple(round(BG_TOP[c] * (1 - t) + BG_BOTTOM[c] * t) for c in range(3)))
+    strip.putdata(pixels)
+    return strip.resize((VIDEO_W, VIDEO_H))
 
 
-def paste_optional_image(canvas: Image.Image, image_path: Path | None) -> None:
-    left, top, right, bottom = IMAGE_BOX
+def paste_optional_image(
+    canvas: Image.Image,
+    image_path: Path | None,
+    box: tuple[int, int, int, int] = IMAGE_BOX,
+) -> None:
+    left, top, right, bottom = box
     box_w, box_h = right - left, bottom - top
     draw = ImageDraw.Draw(canvas)
-    rounded(draw, IMAGE_BOX, 34, "#f9e7ef")
+    rounded(draw, box, 34, CARD, LINE, 3)
+    inner_w = max(1, box_w - IMAGE_INSET * 2)
+    inner_h = max(1, box_h - IMAGE_INSET * 2)
+    inner_box = (left + IMAGE_INSET, top + IMAGE_INSET, right - IMAGE_INSET, bottom - IMAGE_INSET)
     if image_path is None:
-        # Keep the same square area and layout when the question has no image.
-        draw.text((left + 56, top + 40), "IMAGEM OPCIONAL", font=load_font(28, True), fill=PINK)
-        draw.ellipse((left + 256, top + 180, left + 714, top + 638), fill="#f5c1d6")
-        draw.ellipse((left + 350, top + 274, left + 620, top + 544), fill=YELLOW)
-        draw.text((left + 325, top + 358), "V / F", font=load_font(92, True), fill=INK)
+        rounded(draw, inner_box, 24, "#4a2b61", LINE, 2)
+        draw.text((left + 85, top + 95), "IMAGEM OPCIONAL", font=load_font(30, True), fill=BRAND)
+        draw.ellipse((left + 256, top + 256, left + 714, top + 714), fill="#74518d")
+        draw.ellipse((left + 350, top + 350, left + 620, top + 620), fill=BRAND)
+        draw.text((left + 370, top + 430), "V / F", font=load_font(82, True), fill="#281740")
         return
 
     if not image_path.exists():
         raise FileNotFoundError(f"Imagem não encontrada: {image_path.relative_to(ROOT)}")
     with Image.open(image_path) as source:
         source = ImageOps.exif_transpose(source).convert("RGBA")
-        # Contain, never crop/stretch: all images occupy the same 970 x 970 px area.
-        fitted = ImageOps.contain(source, (box_w, box_h), method=Image.Resampling.LANCZOS)
+        # Contain, never crop/stretch. The outer frame stays 970 px square;
+        # the caricature is 870 px square with a visible 50 px margin.
+        fitted = ImageOps.contain(source, (inner_w, inner_h), method=Image.Resampling.LANCZOS)
         px = left + (box_w - fitted.width) // 2
         py = top + (box_h - fitted.height) // 2
         canvas.paste(fitted, (px, py), fitted)
@@ -145,89 +201,61 @@ def paste_optional_image(canvas: Image.Image, image_path: Path | None) -> None:
 def render_question_frame(question: dict, image_path: Path | None, countdown: int | None = None) -> Image.Image:
     canvas = make_paper(question["pergunta"])
     draw = ImageDraw.Draw(canvas)
-    # Brand and heading
-    rounded(draw, (55, 55, 330, 125), 22, PINK)
-    draw.text((83, 70), "JUH QUIZ", font=load_font(38, True), fill="#ffffff")
-    draw.text((650, 82), "VERDADEIRO OU FALSO", font=load_font(23, True), fill=MUTED)
-    draw.line((55, 185, 1025, 185), fill=YELLOW, width=15)
-    draw.text((65, 172), "DESAFIO DE HOJE", font=load_font(26, True), fill=INK)
-    draw.text((55, 230), "A afirmação é:", font=load_font(38, True), fill=INK)
+    rounded(draw, (55, 55, 365, 130), 24, BRAND)
+    draw.text((82, 73), "JUH QUIZ", font=load_font(40, True), fill="#281740")
+    draw.text((620, 84), "VERDADEIRO OU FALSO", font=load_font(23, True), fill=MUTED)
+    draw.line((55, 180, 1025, 180), fill=LINE, width=3)
+    draw.text((60, 200), "DESAFIO DE HOJE", font=load_font(26, True), fill=BRAND)
+    draw.text((55, 238), "A afirmação é:", font=load_font(34, True), fill=TITLE)
+    rounded(draw, (55, 278, 1025, 445), 24, CARD, LINE, 2)
 
-    question_font = load_font(48, True)
-    question_end = draw_wrapped(
-        draw,
-        question["pergunta"],
-        (55, 285),
-        question_font,
-        INK,
-        970,
-        line_gap=12,
-        max_lines=3,
-    )
-    if question_end > 440:
-        raise ValueError("A pergunta precisa caber acima da área de imagem de 970 × 970 px.")
-
-    rounded(draw, (55, 430, 520, 485), 16, "#fff0f6", PINK, 3)
-    draw.text((95, 442), "VERDADEIRO", font=load_font(26, True), fill=PINK)
-    rounded(draw, (560, 430, 1025, 485), 16, PINK)
-    draw.text((695, 442), "FALSO", font=load_font(26, True), fill="#ffffff")
-    paste_optional_image(canvas, image_path)
-
-    # Redraw the question and response controls after the image surface so they remain on top.
+    question_font, question_gap = fit_question_font(draw, question["pergunta"], width=916)
+    draw_wrapped(draw, question["pergunta"], (82, 295), question_font, TITLE, 916,
+                 line_gap=question_gap, max_lines=3)
+    paste_optional_image(canvas, image_path, IMAGE_BOX)
     draw = ImageDraw.Draw(canvas)
-    rounded(draw, (55, 55, 330, 125), 22, PINK)
-    draw.text((83, 70), "JUH QUIZ", font=load_font(38, True), fill="#ffffff")
-    draw.text((650, 82), "VERDADEIRO OU FALSO", font=load_font(23, True), fill=MUTED)
-    draw.line((55, 185, 1025, 185), fill=YELLOW, width=15)
-    draw.text((65, 172), "DESAFIO DE HOJE", font=load_font(26, True), fill=INK)
-    draw.text((55, 230), "A afirmação é:", font=load_font(38, True), fill=INK)
-    draw_wrapped(draw, question["pergunta"], (55, 285), question_font, INK, 970, line_gap=12, max_lines=3)
-    rounded(draw, (55, 430, 520, 485), 16, "#fff0f6", PINK, 3)
-    draw.text((95, 442), "VERDADEIRO", font=load_font(26, True), fill=PINK)
-    rounded(draw, (560, 430, 1025, 485), 16, PINK)
-    draw.text((695, 442), "FALSO", font=load_font(26, True), fill="#ffffff")
+    draw_answer_buttons(draw)
+    draw.text((230, 1645), "VOCÊ TEM 3 SEGUNDOS PARA RESPONDER", font=load_font(25, True), fill=MUTED)
 
     if countdown is not None:
-        # Number is drawn over the fixed square image area during the 3-second pause.
-        rounded(draw, (415, 825, 665, 1075), 125, PINK)
+        # The countdown stays centered inside the fixed 970 x 970 image frame.
+        draw.ellipse((415, 825, 665, 1075), fill=BRAND, outline="#fff8e8", width=7)
         label = str(countdown)
         font = load_font(150, True)
         bounds = draw.textbbox((0, 0), label, font=font)
-        draw.text((540 - (bounds[2] - bounds[0]) / 2, 850), label, font=font, fill="#ffffff")
+        text_x = 540 - (bounds[2] - bounds[0]) / 2 - bounds[0]
+        text_y = 950 - (bounds[3] - bounds[1]) / 2 - bounds[1]
+        draw.text((text_x, text_y), label, font=font, fill="#281740")
     return canvas
 
 
 def render_answer_frame(question: dict, image_path: Path | None, answer_text: str) -> Image.Image:
     canvas = make_paper(question["pergunta"])
     draw = ImageDraw.Draw(canvas)
-    rounded(draw, (55, 55, 330, 125), 22, PINK)
-    draw.text((83, 70), "JUH QUIZ", font=load_font(38, True), fill="#ffffff")
-    draw.text((650, 82), "VERDADEIRO OU FALSO", font=load_font(23, True), fill=MUTED)
-    draw.line((55, 185, 1025, 185), fill=YELLOW, width=15)
-    draw.text((65, 172), "RESPOSTA", font=load_font(26, True), fill=INK)
-    draw.text((55, 230), "A afirmação era:", font=load_font(38, True), fill=INK)
-    draw_wrapped(draw, question["pergunta"], (55, 285), load_font(44, True), INK, 970, line_gap=10, max_lines=3)
+    rounded(draw, (55, 55, 365, 130), 24, BRAND)
+    draw.text((82, 73), "JUH QUIZ", font=load_font(40, True), fill="#281740")
+    draw.text((620, 84), "VERDADEIRO OU FALSO", font=load_font(23, True), fill=MUTED)
+    draw.line((55, 180, 1025, 180), fill=LINE, width=3)
+    draw.text((60, 200), "RESPOSTA", font=load_font(28, True), fill=BRAND)
 
-    left, top, right, bottom = IMAGE_BOX
-    rounded(draw, IMAGE_BOX, 34, "#fff2c1")
+    paste_optional_image(canvas, image_path, ANSWER_IMAGE_BOX)
+    draw = ImageDraw.Draw(canvas)
+    left, top, right, bottom = ANSWER_IMAGE_BOX
     label = "VERDADEIRA" if question["verdadeiro"] else "FALSA"
-    rounded(draw, (left + 42, top + 42, right - 42, top + 160), 24, PINK)
-    label_font = load_font(64, True)
+    rounded(draw, (left + 183, top + 28, right - 183, top + 122), 28, TRUE if question["verdadeiro"] else FALSE)
+    label_font = load_font(46, True)
     bounds = draw.textbbox((0, 0), label, font=label_font)
-    draw.text(((VIDEO_W - (bounds[2] - bounds[0])) / 2, top + 63), label, font=label_font, fill="#ffffff")
-    draw.text((left + 52, top + 205), "POR QUÊ?", font=load_font(35, True), fill=PINK)
-    draw_wrapped(
-        draw,
-        question["explicacao"],
-        (left + 52, top + 272),
-        load_font(34),
-        INK,
-        box_width := right - left - 104,
-        line_gap=24,
-        max_lines=8,
-    )
-    draw.line((left + 52, bottom - 84, right - 52, bottom - 84), fill=PINK, width=5)
-    draw.text((left + 52, bottom - 63), "JUH QUIZ  •  EXPLICAÇÃO", font=load_font(22, True), fill=MUTED)
+    tx = (VIDEO_W - (bounds[2] - bounds[0])) / 2 - bounds[0]
+    ty = top + 53 - bounds[1]
+    draw.text((tx, ty), label, font=label_font, fill="#ffffff")
+
+    card = (55, 1245, 1025, 1775)
+    rounded(draw, card, 28, CARD, LINE, 2)
+    draw.text((90, 1285), "POR QUÊ?", font=load_font(32, True), fill=BRAND)
+    explanation_font = load_font(29)
+    draw_wrapped(draw, question["explicacao"], (90, 1345), explanation_font, TITLE,
+                 900, line_gap=12, max_lines=8)
+    draw.text((90, 1715), "JUH QUIZ  •  EXPLICAÇÃO", font=load_font(22, True), fill=MUTED)
     return canvas
 
 
