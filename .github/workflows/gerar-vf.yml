@@ -8,14 +8,14 @@ permissions:
 
 jobs:
   gerar:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Baixar repositório
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Preparar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -24,7 +24,7 @@ jobs:
       - name: Instalar FFmpeg e fontes
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core rclone
+          sudo apt-get install -y ffmpeg fonts-dejavu-core rclone espeak-ng
 
       - name: Instalar dependências do formato
         run: python -m pip install -r requirements-vf.txt
@@ -37,7 +37,7 @@ jobs:
         run: python -u gerar_vf.py --enviar-drive --lote "${{ github.run_id }}"
 
       - name: Disponibilizar MP4 e TXT
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: juh-quiz-verdadeiro-ou-falso
           path: saida_vf/
