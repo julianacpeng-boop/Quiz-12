@@ -24,13 +24,17 @@ jobs:
       - name: Instalar FFmpeg e fontes
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y ffmpeg fonts-dejavu-core rclone
 
       - name: Instalar dependências do formato
         run: python -m pip install -r requirements-vf.txt
 
       - name: Gerar vídeos e legendas
-        run: python gerar_vf.py
+        env:
+          RCLONE_CONFIG_DESTINO_TYPE: drive
+          RCLONE_CONFIG_DESTINO_TOKEN: ${{ secrets.RCLONE_DRIVE_TOKEN }}
+          RCLONE_CONFIG_DESTINO_ROOT_FOLDER_ID: 1IeWfSGxVOgY4nwLQwGxzPZMqRCO81i8B
+        run: python -u gerar_vf.py --enviar-drive --lote "${{ github.run_id }}"
 
       - name: Disponibilizar MP4 e TXT
         uses: actions/upload-artifact@v4
