@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import argparse
 import math
 import re
 import shutil
@@ -24,6 +25,7 @@ RATE = "+10%"
 VIDEO_W, VIDEO_H = 1080, 1920
 IMAGE_BOX = (55, 500, 1025, 1470)  # left, top, right, bottom: 970 x 970 px
 FPS = 30
+DRIVE_BASE = "DESTINO:saida/Juh-Quiz-10/verdadeiro-ou-falso"
 PINK = "#ec4c91"
 PAPER = "#fffaf4"
 INK = "#332333"
@@ -308,7 +310,7 @@ def validate(question: dict, index: int) -> None:
         raise ValueError(f"Pergunta {index}: escreva uma explicação.")
 
 
-def make_one_video(index: int, question: dict) -> tuple[Path, Path]:
+def make_one_video(index: int, question: dict, send_drive: bool = False, batch: str = "manual") -> tuple[Path, Path]:
     validate(question, index)
     image_path = resolve_image(question.get("imagem"))
     answer_label = "verdadeira" if question["verdadeiro"] else "falsa"
@@ -373,17 +375,36 @@ def make_one_video(index: int, question: dict) -> tuple[Path, Path]:
         f"{question['pergunta']}\n\nResposta: {result_word}.\nExplicação: {question['explicacao']}\n",
         encoding="utf-8",
     )
+    if send_drive:
+        run([
+            "rclone", "copyto", str(video_path),
+            f"{DRIVE_BASE}/execucao-{batch}/{video_path.name}",
+        ])
+        run([
+            "rclone", "copyto", str(caption_path),
+            f"{DRIVE_BASE}/execucao-{batch}/{caption_path.name}",
+        ])
     return video_path, caption_path
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Gera vídeos Juh Quiz de Verdadeiro ou Falso.")
+    parser.add_argument("--enviar-drive", action="store_true", help="envia MP4 e TXT para o Drive do Quiz-10")
+    parser.add_argument("--lote", default=None, help="identificador da pasta de execução no Drive")
+    args = parser.parse_args()
+
     require_program("ffmpeg")
     require_program("ffprobe")
+    if args.enviar_drive:
+        require_program("rclone")
     if not PERGUNTAS:
         raise ValueError("Adicione pelo menos uma pergunta em dados_vf.py.")
+    batch = args.lote or "manual"
     for index, question in enumerate(PERGUNTAS, start=1):
-        video, caption = make_one_video(index, question)
+        video, caption = make_one_video(index, question, args.enviar_drive, batch)
         print(f"Criado: {video.name} e {caption.name}")
+        if args.enviar_drive:
+            print(f"Enviado ao Drive: {DRIVE_BASE}/execucao-{batch}/")
 
 
 if __name__ == "__main__":

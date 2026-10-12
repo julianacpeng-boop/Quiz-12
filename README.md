@@ -10,6 +10,7 @@ Gera um vídeo vertical para cada afirmação cadastrada: a narração lê a per
 - Imagem opcional: sempre encaixada sem corte ou distorção na área **970 × 970 px**, entre as posições `(55, 500)` e `(1025, 1470)` do vídeo.
 - A resposta e a explicação aparecem nessa área depois da contagem.
 - Cada item de `PERGUNTAS` gera um vídeo com apenas uma afirmação.
+- O MP4 e o TXT são enviados para `saida/Juh-Quiz-10/verdadeiro-ou-falso/execucao-ID/` no Drive.
 
 ## Colocar no repositório Quiz-10
 
@@ -45,6 +46,10 @@ Use `True` para verdadeiro e `False` para falso. A imagem de exemplo já está n
 1. Abra a aba **Actions** do repositório.
 2. Escolha **Gerar Juh Quiz — Verdadeiro ou Falso**.
 3. Toque em **Run workflow**.
-4. Ao terminar, baixe o artefato `juh-quiz-verdadeiro-ou-falso` para obter os MP4 e TXT.
+4. O fluxo salva os MP4 e TXT no Google Drive e também disponibiliza o artefato `juh-quiz-verdadeiro-ou-falso` para baixar.
+
+## Secret do Google Drive
+
+No repositório, abra **Settings → Secrets and variables → Actions**. Cadastre o secret com o nome exato `RCLONE_DRIVE_TOKEN` e cole no valor o JSON completo do token rclone que já é usado no Quiz-10. O workflow configura o mesmo Drive e a pasta base do Quiz-10 automaticamente; não é necessário cadastrar a chave da pasta separadamente.
 
 O gerador também pode ser executado localmente com `python gerar_vf.py` após instalar `requirements-vf.txt` e o FFmpeg.
