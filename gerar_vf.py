@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import argparse
+import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -12,6 +14,8 @@ import tempfile
 import unicodedata
 import wave
 from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -246,11 +250,113 @@ def write_beep(path: Path, frequency: int = 950, seconds: float = 1.0) -> None:
         output.writeframes(frames)
 
 
-async def synthesize(text: str, destination: Path) -> None:
-    import edge_tts
+_EDGE_CONFIGURED = False
 
-    communicator = edge_tts.Communicate(text, VOICE, rate=RATE)
-    await communicator.save(str(destination))
+
+def configure_edge() -> None:
+    """Use the Edge Services endpoint and current Edge browser headers."""
+    global _EDGE_CONFIGURED
+    import edge_tts.constants as constants
+    import edge_tts.communicate as communicate
+    import edge_tts.voices as voices
+
+    version = os.getenv("QUIZ_EDGE_VERSION", "").strip()
+    if version and not re.fullmatch(r"\d+\.\d+\.\d+\.\d+", version):
+        raise ValueError("QUIZ_EDGE_VERSION precisa ser uma versão completa do Edge.")
+    if not version:
+        try:
+            with urlopen("https://edgeupdates.microsoft.com/api/products?view=enterprise", timeout=15) as response:
+                products = json.load(response)
+            versions = [release["ProductVersion"]
+                        for product in products if product.get("Product") == "Stable"
+                        for release in product.get("Releases", [])
+                        if release.get("Platform") == "Windows"
+                        and release.get("Architecture") == "x64"
+                        and re.fullmatch(r"\d+\.\d+\.\d+\.\d+", release.get("ProductVersion", ""))]
+            version = max(versions, key=lambda item: tuple(map(int, item.split("."))))
+        except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
+            version = "155.0.4283.45"
+            print("Catálogo Edge indisponível; usando a versão validada 155.0.4283.45.", flush=True)
+
+    major = version.split(".")[0]
+    constants.CHROMIUM_FULL_VERSION = version
+    constants.CHROMIUM_MAJOR_VERSION = major
+    constants.SEC_MS_GEC_VERSION = communicate.SEC_MS_GEC_VERSION = voices.SEC_MS_GEC_VERSION = "1-" + version
+    base = "api.msedgeservices.com/tts/cognitiveservices"
+    token = constants.TRUSTED_CLIENT_TOKEN
+    constants.WSS_URL = communicate.WSS_URL = f"wss://{base}/websocket/v1?Ocp-Apim-Subscription-Key={token}"
+    constants.VOICE_LIST = voices.VOICE_LIST = f"https://{base}/voices/list?Ocp-Apim-Subscription-Key={token}"
+    user_agent = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        f"(KHTML, like Gecko) Chrome/{major}.0.0.0 Safari/537.36 Edg/{major}.0.0.0"
+    )
+    for headers in (constants.BASE_HEADERS, constants.WSS_HEADERS, constants.VOICE_HEADERS,
+                    communicate.WSS_HEADERS, voices.VOICE_HEADERS):
+        headers["User-Agent"] = user_agent
+    communicate.WSS_HEADERS["Sec-WebSocket-Protocol"] = "synthesize"
+    voices.VOICE_HEADERS["Authority"] = "api.msedgeservices.com"
+    voices.VOICE_HEADERS["Sec-CH-UA"] = (
+        f'" Not;A Brand";v="99", "Microsoft Edge";v="{major}", "Chromium";v="{major}"'
+    )
+    for module in (communicate, voices):
+        context = getattr(module, "_SSL_CTX", None)
+        if context is not None:
+            context.load_default_certs()
+    _EDGE_CONFIGURED = True
+    print(f"Voz {VOICE}: conexão Edge Services, versão {version}, sem chave Azure.", flush=True)
+
+
+async def synthesize(text: str, destination: Path) -> None:
+    """Use Edge TTS with retries, then local Brazilian Portuguese speech as fallback."""
+    try:
+        import edge_tts
+        from aiohttp import ClientError
+
+        if not _EDGE_CONFIGURED:
+            await asyncio.to_thread(configure_edge)
+
+        temporary = destination.with_name(destination.name + ".parcial.mp3")
+        waits = (5, 10, 20)
+        for attempt in range(len(waits) + 1):
+            try:
+                temporary.unlink(missing_ok=True)
+                communicator = edge_tts.Communicate(
+                    text, VOICE, rate=RATE, connect_timeout=30, receive_timeout=90,
+                )
+                await communicator.save(str(temporary))
+                if not temporary.exists() or temporary.stat().st_size == 0:
+                    raise edge_tts.exceptions.NoAudioReceived("Áudio vazio.")
+                if probe_duration(temporary) <= 0:
+                    raise ValueError("Áudio da voz Antonio sem duração.")
+                temporary.replace(destination)
+                return
+            except (ClientError, asyncio.TimeoutError, edge_tts.exceptions.NoAudioReceived) as error:
+                temporary.unlink(missing_ok=True)
+                if attempt == len(waits):
+                    print(
+                        f"Edge TTS falhou após {attempt + 1} tentativas ({error}). "
+                        "Usando a voz local pt-br para concluir o vídeo.", flush=True
+                    )
+                    break
+                wait = waits[attempt]
+                print(f"Voz Antonio: tentativa {attempt + 1} falhou ({type(error).__name__}); nova tentativa em {wait}s.", flush=True)
+                await asyncio.sleep(wait)
+            except Exception:
+                temporary.unlink(missing_ok=True)
+                raise
+    except ImportError as error:
+        print(f"Edge TTS indisponível ({error}). Usando a voz local pt-br.")
+
+    local_wav = destination.with_name(f"{destination.stem}_local.wav")
+    run([
+        "espeak-ng", "-v", "pt-br", "-s", "165",
+        "-w", str(local_wav), text,
+    ])
+    run([
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+        "-i", str(local_wav), "-codec:a", "libmp3lame", "-q:a", "3",
+        str(destination),
+    ])
 
 
 def probe_duration(path: Path) -> float:
@@ -298,7 +404,7 @@ def resolve_image(value: str | None) -> Path | None:
 
 
 def validate(question: dict, index: int) -> None:
-    required = ("pergunta", "verdadeiro", "explicacao")
+    required = ("pergunta", "verdadeiro", "explicacao", "legenda", "hashtags")
     missing = [field for field in required if field not in question]
     if missing:
         raise ValueError(f"Pergunta {index}: faltam os campos {', '.join(missing)}.")
@@ -308,6 +414,18 @@ def validate(question: dict, index: int) -> None:
         raise ValueError(f"Pergunta {index}: verdadeiro precisa ser True ou False.")
     if not isinstance(question["explicacao"], str) or not question["explicacao"].strip():
         raise ValueError(f"Pergunta {index}: escreva uma explicação.")
+    if not isinstance(question["legenda"], str) or not question["legenda"].strip():
+        raise ValueError(f"Pergunta {index}: escreva a legenda para publicação.")
+    tags = question["hashtags"]
+    if not isinstance(tags, list) or not 1 <= len(tags) <= 4:
+        raise ValueError(f"Pergunta {index}: informe de 1 a 4 hashtags relacionadas ao tema.")
+    if any(not isinstance(tag, str) or not tag.startswith("#") or len(tag) < 2 for tag in tags):
+        raise ValueError(f"Pergunta {index}: cada hashtag deve começar com #.")
+
+
+def format_caption(question: dict) -> str:
+    tags = " ".join(question["hashtags"])
+    return f"CAPA_SEGUNDOS=2\n\n{question['legenda'].strip()}\n{tags}\n"
 
 
 def make_one_video(index: int, question: dict, send_drive: bool = False, batch: str = "manual") -> tuple[Path, Path]:
@@ -371,10 +489,7 @@ def make_one_video(index: int, question: dict, send_drive: bool = False, batch: 
 
     caption_path = OUTPUT_DIR / f"{base_name}.txt"
     result_word = "Verdadeiro" if question["verdadeiro"] else "Falso"
-    caption_path.write_text(
-        f"{question['pergunta']}\n\nResposta: {result_word}.\nExplicação: {question['explicacao']}\n",
-        encoding="utf-8",
-    )
+    caption_path.write_text(format_caption(question), encoding="utf-8")
     if send_drive:
         run([
             "rclone", "copyto", str(video_path),

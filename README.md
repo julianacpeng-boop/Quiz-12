@@ -5,8 +5,9 @@ Gera um vídeo vertical para cada afirmação cadastrada: a narração lê a per
 ## O padrão do vídeo
 
 - Vídeo vertical: **1080 × 1920 px** (9:16).
-- Narração: voz `pt-BR-AntonioNeural`, velocidade `+10%`.
-- Contagem: 3 segundos, com os números 3, 2 e 1 e bipes curtos.
+- Narração: voz `pt-BR-AntonioNeural`, velocidade `+10%`. A conexão usa o endpoint Edge Services validado no Quiz-10, tenta novamente em caso de falha temporária e recorre à voz local em português se o serviço continuar indisponível.
+- Contagem antes da resposta: 3 segundos, com os números 3, 2 e 1 e bipes curtos.
+- Cada TXT para publicação começa com CAPA_SEGUNDOS=2 e inclui uma legenda curta e até 4 hashtags relacionadas ao tema.
 - As seis caricaturas incluídas são quadradas, em **970 × 970 px**, e aparecem na área entre as posições `(55, 500)` e `(1025, 1470)` do vídeo. Imagens opcionais também cabem nessa área sem cortes ou distorções.
 - A resposta e a explicação aparecem nessa área depois da contagem.
 - Cada item de `PERGUNTAS` gera um vídeo com apenas uma afirmação.
@@ -31,13 +32,9 @@ O modo Verdadeiro ou Falso fica em arquivos próprios, sem substituir outros ger
 
 O arquivo `dados_vf.py` já vem com seis vídeos prontos: lobisomem, bruxa, vampiro, fantasma, zumbi e dragão. Cada pergunta tem uma explicação narrada e uma caricatura em `imagens_perguntas/`. As fontes históricas usadas estão em `FONTES.md`.
 
-## Perguntas e caricaturas incluídas
-
-O arquivo `dados_vf.py` já vem com seis vídeos prontos: lobisomem, bruxa, vampiro, fantasma, zumbi e dragão. Cada pergunta tem uma explicação narrada e uma caricatura em `imagens_perguntas/`. As fontes históricas usadas estão em `FONTES.md`.
-
 ## Cadastrar perguntas
 
-Edite `dados_vf.py`. Para cada vídeo, preencha `pergunta`, `verdadeiro` e `explicacao`. `imagem` pode ser `None` ou o caminho de uma imagem dentro de `imagens_perguntas/`.
+Edite `dados_vf.py`. Para cada vídeo, preencha `pergunta`, `verdadeiro`, `explicacao`, `legenda` e até 4 `hashtags`. `imagem` pode ser `None` ou o caminho de uma imagem dentro de `imagens_perguntas/`. O TXT de publicação é montado automaticamente com CAPA_SEGUNDOS=2, legenda e hashtags.
 
 ```python
 {
@@ -45,6 +42,8 @@ Edite `dados_vf.py`. Para cada vídeo, preencha `pergunta`, `verdadeiro` e `expl
     "verdadeiro": True,
     "explicacao": "Seres parecidos com dragões aparecem em tradições antigas de várias regiões.",
     "imagem": "imagens_perguntas/dragao.png",
+    "legenda": "Dragões aparecem em histórias antigas de várias culturas. Você sabia?",
+    "hashtags": ["#Dragões", "#Mitologia", "#Curiosidades", "#JuhQuiz"],
 }
 ```
 
