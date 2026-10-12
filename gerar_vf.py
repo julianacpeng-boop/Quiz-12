@@ -25,7 +25,7 @@ RATE = "+10%"
 VIDEO_W, VIDEO_H = 1080, 1920
 IMAGE_BOX = (55, 500, 1025, 1470)  # left, top, right, bottom: 970 x 970 px
 FPS = 30
-DRIVE_BASE = "DESTINO:saida/Juh-Quiz-10/verdadeiro-ou-falso"
+DRIVE_BASE = "DESTINO:saida/Juh-Quiz-12/verdadeiro-ou-falso"
 PINK = "#ec4c91"
 PAPER = "#fffaf4"
 INK = "#332333"
@@ -389,7 +389,7 @@ def make_one_video(index: int, question: dict, send_drive: bool = False, batch: 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Gera vídeos Juh Quiz de Verdadeiro ou Falso.")
-    parser.add_argument("--enviar-drive", action="store_true", help="envia MP4 e TXT para o Drive do Quiz-10")
+    parser.add_argument("--enviar-drive", action="store_true", help="envia MP4 e TXT para o Drive do Quiz-12")
     parser.add_argument("--lote", default=None, help="identificador da pasta de execução no Drive")
     args = parser.parse_args()
 

@@ -7,12 +7,12 @@ Gera um vídeo vertical para cada afirmação cadastrada: a narração lê a per
 - Vídeo vertical: **1080 × 1920 px** (9:16).
 - Narração: voz `pt-BR-AntonioNeural`, velocidade `+10%`.
 - Contagem: 3 segundos, com os números 3, 2 e 1 e bipes curtos.
-- Imagem opcional: sempre encaixada sem corte ou distorção na área **970 × 970 px**, entre as posições `(55, 500)` e `(1025, 1470)` do vídeo.
+- As seis caricaturas incluídas são quadradas, em **970 × 970 px**, e aparecem na área entre as posições `(55, 500)` e `(1025, 1470)` do vídeo. Imagens opcionais também cabem nessa área sem cortes ou distorções.
 - A resposta e a explicação aparecem nessa área depois da contagem.
 - Cada item de `PERGUNTAS` gera um vídeo com apenas uma afirmação.
-- O MP4 e o TXT são enviados para `saida/Juh-Quiz-10/verdadeiro-ou-falso/execucao-ID/` no Drive.
+- O MP4 e o TXT são enviados para `saida/Juh-Quiz-12/verdadeiro-ou-falso/execucao-ID/` no Drive.
 
-## Colocar no repositório Quiz-10
+## Colocar no repositório Quiz-12
 
 Envie estes arquivos para a raiz do repositório, mantendo a pasta `.github/workflows/`:
 
@@ -20,11 +20,20 @@ Envie estes arquivos para a raiz do repositório, mantendo a pasta `.github/work
 gerar_vf.py
 dados_vf.py
 requirements-vf.txt
+FONTES.md
 imagens_perguntas/
 .github/workflows/gerar-vf.yml
 ```
 
-Não substitua o gerador ou os dados do Quiz-10. O modo Verdadeiro ou Falso fica separado.
+O modo Verdadeiro ou Falso fica em arquivos próprios, sem substituir outros geradores do repositório.
+
+## Perguntas e caricaturas incluídas
+
+O arquivo `dados_vf.py` já vem com seis vídeos prontos: lobisomem, bruxa, vampiro, fantasma, zumbi e dragão. Cada pergunta tem uma explicação narrada e uma caricatura em `imagens_perguntas/`. As fontes históricas usadas estão em `FONTES.md`.
+
+## Perguntas e caricaturas incluídas
+
+O arquivo `dados_vf.py` já vem com seis vídeos prontos: lobisomem, bruxa, vampiro, fantasma, zumbi e dragão. Cada pergunta tem uma explicação narrada e uma caricatura em `imagens_perguntas/`. As fontes históricas usadas estão em `FONTES.md`.
 
 ## Cadastrar perguntas
 
@@ -32,14 +41,14 @@ Edite `dados_vf.py`. Para cada vídeo, preencha `pergunta`, `verdadeiro` e `expl
 
 ```python
 {
-    "pergunta": "A água ferve sempre a 100 °C, em qualquer lugar?",
-    "verdadeiro": False,
-    "explicacao": "Em lugares altos, a pressão atmosférica é menor. Por isso, a água ferve abaixo de 100 °C.",
-    "imagem": "imagens_perguntas/agua_ferve.png",
+    "pergunta": "Dragões aparecem em mitologias antigas de diferentes culturas?",
+    "verdadeiro": True,
+    "explicacao": "Seres parecidos com dragões aparecem em tradições antigas de várias regiões.",
+    "imagem": "imagens_perguntas/dragao.png",
 }
 ```
 
-Use `True` para verdadeiro e `False` para falso. A imagem de exemplo já está no tamanho exato de **970 × 970 px**. Você pode substituí-la por outra mantendo esse tamanho; imagens de outras proporções também serão ajustadas para caber na área sem serem cortadas.
+Use `True` para verdadeiro e `False` para falso. As seis caricaturas incluídas estão no tamanho exato de **970 × 970 px**. Para adicionar outra, prefira esse tamanho; imagens de outras proporções também serão ajustadas para caber na área sem serem cortadas.
 
 ## Gerar pelo GitHub
 
@@ -50,6 +59,6 @@ Use `True` para verdadeiro e `False` para falso. A imagem de exemplo já está n
 
 ## Secret do Google Drive
 
-No repositório, abra **Settings → Secrets and variables → Actions**. Cadastre o secret com o nome exato `RCLONE_DRIVE_TOKEN` e cole no valor o JSON completo do token rclone que já é usado no Quiz-10. O workflow configura o mesmo Drive e a pasta base do Quiz-10 automaticamente; não é necessário cadastrar a chave da pasta separadamente.
+No Quiz-12, abra **Settings → Secrets and variables → Actions**. Cadastre o secret com o nome exato `RCLONE_DRIVE_TOKEN` e cole no valor o JSON completo do token rclone que você já usa no Quiz-10. O workflow salva os arquivos em `saida/Juh-Quiz-12/verdadeiro-ou-falso/execucao-ID/` no Drive.
 
 O gerador também pode ser executado localmente com `python gerar_vf.py` após instalar `requirements-vf.txt` e o FFmpeg.

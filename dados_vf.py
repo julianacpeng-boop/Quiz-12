@@ -2,13 +2,64 @@
 
 PERGUNTAS = [
     {
-        "pergunta": "A água ferve sempre a 100 °C, em qualquer lugar?",
+        "pergunta": "A lenda do lobisomem foi inventada pelo cinema moderno?",
         "verdadeiro": False,
         "explicacao": (
-            "Em lugares altos, a pressão atmosférica é menor. "
-            "Por isso, a água pode ferver abaixo de 100 graus Celsius."
+            "Histórias de lobisomens já circulavam no mundo antigo. "
+            "A mitologia e o folclore greco-romanos registravam narrativas "
+            "de transformação entre pessoas e lobos muito antes do cinema."
         ),
-        "imagem": "imagens_perguntas/agua_ferve.png",
+        "imagem": "imagens_perguntas/lobisomem.png",
     },
-    # Copie o bloco acima para criar outro vídeo. Use "imagem": None se não quiser imagem.
+    {
+        "pergunta": "A crença em bruxas surgiu somente na Idade Média?",
+        "verdadeiro": False,
+        "explicacao": (
+            "Ideias sobre magia e figuras chamadas de bruxas aparecem em fontes "
+            "da Antiguidade. A imagem da bruxa mudou ao longo do tempo e não "
+            "tem uma única origem."
+        ),
+        "imagem": "imagens_perguntas/bruxa.png",
+    },
+    {
+        "pergunta": "A lenda dos vampiros começou com o livro Drácula?",
+        "verdadeiro": False,
+        "explicacao": (
+            "Relatos e crenças populares sobre mortos que voltariam à vida "
+            "existiam na Europa antes do romance Drácula, publicado em 1897. "
+            "A literatura ajudou a moldar a imagem moderna do vampiro."
+        ),
+        "imagem": "imagens_perguntas/vampiro.png",
+    },
+    {
+        "pergunta": "Plínio, o Jovem, contou uma história de casa assombrada na Roma antiga?",
+        "verdadeiro": True,
+        "explicacao": (
+            "Em uma carta escrita no século I, Plínio descreveu uma casa em "
+            "Atenas onde se ouvia o som de correntes e aparecia o fantasma "
+            "de um homem."
+        ),
+        "imagem": "imagens_perguntas/fantasma.png",
+    },
+    {
+        "pergunta": "A figura do zumbi do folclore haitiano tem raízes ligadas à história do Haiti e a crenças populares?",
+        "verdadeiro": True,
+        "explicacao": (
+            "A tradição haitiana do zumbi se desenvolveu em um contexto "
+            "histórico marcado pela escravidão e se relaciona a crenças "
+            "populares associadas ao Vodou. O zumbi de filmes ganhou outras "
+            "características."
+        ),
+        "imagem": "imagens_perguntas/zumbi.png",
+    },
+    {
+        "pergunta": "Dragões aparecem em mitologias antigas de diferentes culturas?",
+        "verdadeiro": True,
+        "explicacao": (
+            "Sim. Seres parecidos com dragões ou grandes serpentes aparecem "
+            "em tradições antigas de várias regiões, como Mesopotâmia, Egito, "
+            "Grécia, China e outras culturas."
+        ),
+        "imagem": "imagens_perguntas/dragao.png",
+    },
 ]
